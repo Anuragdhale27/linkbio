@@ -2,60 +2,50 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
 
 export default function Dashboard() {
-  const router = useRouter()
-
   const [links, setLinks] = useState<any[]>([])
   const [title, setTitle] = useState('')
   const [url, setUrl] = useState('')
-  const [username, setUsername] = useState('')
 
-  useEffect(() => {
-    loadLinks()
-  }, [])
-
-  // Load links + create profile if missing
-  const loadLinks = async () => {
-    const { data } = await supabase.auth.getSession()
-    const user = data.session?.user
-
-    if (!user) {
-      router.push('/')
-      return
+useEffect(() => {
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    if (session?.user) {
+      loadLinks(session.user.id)
     }
+  })
 
-    // create profile if not exists
-    await supabase.from('profiles').upsert({
-      id: user.id,
-      username: user.email?.split('@')[0],
-    })
+  return () => subscription.unsubscribe()
+}, [])
 
-    // get profile (for public URL)
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
 
-    setUsername(profile?.username)
+  // Load links + auto create profile
+const loadLinks = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('links')
+    .select('*')
+    .eq('user_id', userId)
 
-    // load links
-    const { data: linksData } = await supabase
-      .from('links')
-      .select('*')
-      .eq('user_id', user.id)
-
-    setLinks(linksData || [])
+  if (error) {
+    console.log(error)
+    return
   }
+
+  setLinks(data || [])
+}
+
 
   // Add new link
   const addLink = async () => {
     const { data } = await supabase.auth.getSession()
     const user = data.session?.user
 
-    if (!user) return
+    if (!user) {
+      alert('User not logged in')
+      return
+    }
 
     if (!title || !url) {
       alert('Please enter title and URL')
@@ -65,11 +55,12 @@ export default function Dashboard() {
     const { error } = await supabase.from('links').insert({
       user_id: user.id,
       title,
-      url,
+      url
     })
 
     if (error) {
-      alert(error.message)
+      console.log(error)
+      alert('Error adding link')
       return
     }
 
@@ -78,38 +69,11 @@ export default function Dashboard() {
     loadLinks()
   }
 
-  // Logout
-  const logout = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
-  }
-
   return (
-    <div style={{ padding: 40, maxWidth: 600, margin: 'auto' }}>
-      {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginBottom: 20,
-        }}
-      >
-        <h2>Dashboard</h2>
-        <button onClick={logout}>Logout</button>
-      </div>
+    <div style={{ padding: 40 }}>
+      <h2>Your Links</h2>
 
-      {/* Public Link */}
-      {username && (
-        <p>
-          Your public page:{' '}
-          <a href={`/${username}`} target="_blank">
-            /{username}
-          </a>
-        </p>
-      )}
-
-      {/* Add Link */}
-      <div style={{ marginTop: 20 }}>
+      <div style={{ marginBottom: 20 }}>
         <input
           placeholder="Title"
           value={title}
@@ -127,22 +91,10 @@ export default function Dashboard() {
         <button onClick={addLink}>Add</button>
       </div>
 
-      {/* Links List */}
-      <div style={{ marginTop: 30 }}>
-        <h3>Your Links</h3>
-
-        {links.length === 0 && <p>No links added yet</p>}
-
-        {links.map((link) => (
-          <div
-            key={link.id}
-            style={{
-              padding: 10,
-              border: '1px solid #333',
-              marginTop: 10,
-            }}
-          >
-            {link.title}
+      <div>
+        {links.map((l) => (
+          <div key={l.id} style={{ marginBottom: 10 }}>
+            {l.title}
           </div>
         ))}
       </div>
