@@ -4,74 +4,105 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
 export default function Dashboard() {
+  const [user, setUser] = useState<any>(null)
   const [links, setLinks] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
   const [title, setTitle] = useState('')
   const [url, setUrl] = useState('')
 
-useEffect(() => {
-  const {
-    data: { subscription },
-  } = supabase.auth.onAuthStateChange((_event, session) => {
-    if (session?.user) {
-      loadLinks(session.user.id)
+  /* -----------------------------
+     WAIT FOR SESSION FIRST
+  -----------------------------*/
+  useEffect(() => {
+    const loadSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (session?.user) {
+        setUser(session.user)
+        await loadLinks(session.user.id)
+      }
+
+      setLoading(false)
     }
-  })
 
-  return () => subscription.unsubscribe()
-}, [])
+    loadSession()
+  }, [])
 
+  /* -----------------------------
+     LOAD LINKS
+  -----------------------------*/
+  const loadLinks = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('links')
+      .select('*')
+      .eq('user_id', userId)
 
-  // Load links + auto create profile
-const loadLinks = async (userId: string) => {
-  const { data, error } = await supabase
+    if (error) {
+      console.log(error)
+      return
+    }
+
+    console.log('Loaded links:', data)
+    setLinks(data || [])
+  }
+
+  /* -----------------------------
+     ADD LINK
+  -----------------------------*/
+  const addLink = async () => {
+    if (!user) return alert('User not logged in')
+
+    const { error } = await supabase.from('links').insert({
+      user_id: user.id,
+      title,
+      url,
+    })
+
+    if (error) {
+      console.log(error)
+      return
+    }
+
+    setTitle('')
+    setUrl('')
+    loadLinks(user.id)
+  }
+
+  const deleteLink = async (id: string) => {
+  const { error } = await supabase
     .from('links')
-    .select('*')
-    .eq('user_id', userId)
+    .delete()
+    .eq('id', id)
 
   if (error) {
     console.log(error)
     return
   }
 
-  setLinks(data || [])
-}
+  loadLinks(user.id)
+ }
 
-
-  // Add new link
-  const addLink = async () => {
-    const { data } = await supabase.auth.getSession()
-    const user = data.session?.user
-
-    if (!user) {
-      alert('User not logged in')
-      return
-    }
-
-    if (!title || !url) {
-      alert('Please enter title and URL')
-      return
-    }
-
-    const { error } = await supabase.from('links').insert({
-      user_id: user.id,
-      title,
-      url
-    })
-
-    if (error) {
-      console.log(error)
-      alert('Error adding link')
-      return
-    }
-
-    setTitle('')
-    setUrl('')
-    loadLinks()
+  /* -----------------------------
+     LOGOUT
+  -----------------------------*/
+  const logout = async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/'
   }
+
+  if (loading) return <p style={{ padding: 40 }}>Loading...</p>
 
   return (
     <div style={{ padding: 40 }}>
-      <h2>Your Links</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <h2>Dashboard</h2>
+        <button onClick={logout}>Logout</button>
+      </div>
+
+      <h3>Your Links</h3>
 
       <div style={{ marginBottom: 20 }}>
         <input
@@ -91,13 +122,15 @@ const loadLinks = async (userId: string) => {
         <button onClick={addLink}>Add</button>
       </div>
 
-      <div>
-        {links.map((l) => (
-          <div key={l.id} style={{ marginBottom: 10 }}>
-            {l.title}
+      {links.length === 0 ? (
+        <p>No links added yet</p>
+      ) : (
+        links.map((link) => (
+          <div key={link.id}>
+            <b>{link.title}</b> — {link.url}
           </div>
-        ))}
-      </div>
+        ))
+      )}
     </div>
   )
 }
