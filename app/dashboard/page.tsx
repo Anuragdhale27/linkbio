@@ -6,94 +6,90 @@ import { supabase } from '@/lib/supabase'
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
   const [links, setLinks] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-
   const [title, setTitle] = useState('')
   const [url, setUrl] = useState('')
+  const [loading, setLoading] = useState(true)
 
-  /* -----------------------------
-     WAIT FOR SESSION FIRST
-  -----------------------------*/
+  // ----------------------------
+  // Load user + data
+  // ----------------------------
   useEffect(() => {
-    const loadSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      if (session?.user) {
-        setUser(session.user)
-        await loadLinks(session.user.id)
-      }
-
-      setLoading(false)
-    }
-
-    loadSession()
+    loadUser()
   }, [])
 
-  /* -----------------------------
-     LOAD LINKS
-  -----------------------------*/
+  const loadUser = async () => {
+    const { data } = await supabase.auth.getUser()
+
+    if (!data.user) {
+      window.location.href = '/'
+      return
+    }
+
+    setUser(data.user)
+
+    await ensureProfile(data.user)
+    await loadLinks(data.user.id)
+
+    setLoading(false)
+  }
+
+  // ----------------------------
+  // Create profile if missing
+  // ----------------------------
+  const ensureProfile = async (user: any) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+
+    if (!data) {
+      await supabase.from('profiles').insert({
+        id: user.id,
+        username: user.email.split('@')[0],
+      })
+    }
+  }
+
+  // ----------------------------
+  // Load links
+  // ----------------------------
   const loadLinks = async (userId: string) => {
     const { data, error } = await supabase
       .from('links')
       .select('*')
       .eq('user_id', userId)
+      .order('created_at', { ascending: false })
 
-    if (error) {
-      console.log(error)
-      return
-    }
-
-    console.log('Loaded links:', data)
-    setLinks(data || [])
+    if (!error) setLinks(data || [])
   }
 
-  /* -----------------------------
-     ADD LINK
-  -----------------------------*/
+  // ----------------------------
+  // Add link
+  // ----------------------------
   const addLink = async () => {
-    if (!user) return alert('User not logged in')
+    if (!title || !url) return
 
-    const { error } = await supabase.from('links').insert({
+    await supabase.from('links').insert({
       user_id: user.id,
       title,
       url,
     })
-
-    if (error) {
-      console.log(error)
-      return
-    }
 
     setTitle('')
     setUrl('')
     loadLinks(user.id)
   }
 
-  const deleteLink = async (id: string) => {
-  const { error } = await supabase
-    .from('links')
-    .delete()
-    .eq('id', id)
-
-  if (error) {
-    console.log(error)
-    return
-  }
-
-  loadLinks(user.id)
- }
-
-  /* -----------------------------
-     LOGOUT
-  -----------------------------*/
+  // ----------------------------
+  // Logout
+  // ----------------------------
   const logout = async () => {
     await supabase.auth.signOut()
     window.location.href = '/'
   }
 
-  if (loading) return <p style={{ padding: 40 }}>Loading...</p>
+  if (loading) return <p>Loading...</p>
 
   return (
     <div style={{ padding: 40 }}>
@@ -109,14 +105,14 @@ export default function Dashboard() {
           placeholder="Title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          style={{ marginRight: 10, padding: 8 }}
+          style={{ marginRight: 10 }}
         />
 
         <input
           placeholder="URL"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          style={{ marginRight: 10, padding: 8 }}
+          style={{ marginRight: 10 }}
         />
 
         <button onClick={addLink}>Add</button>
@@ -125,9 +121,9 @@ export default function Dashboard() {
       {links.length === 0 ? (
         <p>No links added yet</p>
       ) : (
-        links.map((link) => (
-          <div key={link.id}>
-            <b>{link.title}</b> — {link.url}
+        links.map((l) => (
+          <div key={l.id}>
+            <b>{l.title}</b> — {l.url}
           </div>
         ))
       )}
