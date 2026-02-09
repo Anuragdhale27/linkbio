@@ -58,7 +58,7 @@ export default function Dashboard() {
     const { data, error } = await supabase
       .from('links')
       .select('*')
-      .eq('user_id', userId)
+      .eq('id', userId)
       .order('created_at', { ascending: false })
 
     if (!error) setLinks(data || [])
