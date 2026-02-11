@@ -1,0 +1,154 @@
+/* LinksTable.css - Full modern dark dashboard styling with compact spacing */
+
+/* Page container */
+div {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: #f0f0f0;
+  background-color: #121212;
+  /* min-height: 10vh; */
+}
+
+/* Optional container to center content and limit width */
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Header container */
+div > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Welcome text */
+h2 {
+  font-weight: 600;
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+}
+
+/* Logout button */
+button {
+  background-color: #1e88e5;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #1565c0;
+}
+
+/* Add Links Section */
+h3 {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+input {
+  background-color: #222;
+  border: 1px solid #444;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: #eee;
+  font-size: 14px;
+  width: 220px;
+  transition: border-color 0.3s ease;
+  margin-right: 6px;
+}
+
+input::placeholder {
+  color: #888;
+}
+
+input:focus {
+  outline: none;
+  border-color: #1e88e5;
+}
+
+/* Add button next to inputs */
+div[style*="margin-bottom"] {
+  margin-bottom: 20px !important; /* increased spacing */
+}
+
+div[style*="margin-bottom"] > button {
+  vertical-align: middle;
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+/* Table Styles */
+.links-table {
+  width: 50%;
+  border-collapse: collapse;
+  font-size: 14px;
+  margin-top: 20px !important; /* spacing between inputs and table */
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #1e1e1e;
+}
+
+/* Table Head */
+.links-table thead tr {
+  background-color: #333;
+}
+
+.links-table th,
+.links-table td {
+  padding: 6px 10px; /* compact padding */
+  text-align: left;
+  border: 1px solid #444;
+  color: #ddd;
+}
+
+/* Center the date column */
+.links-table td.date {
+  text-align: left;
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+}
+
+/* Table rows hover */
+.links-table tbody tr:hover {
+  background-color: #272727;
+}
+
+/* Links inside table */
+.links-table td a {
+  color: #64b5f6;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.links-table td a:hover {
+  color: #90caf9;
+  text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  input {
+    width: 100%;
+    margin-bottom: 8px;
+  }
+  div[style*="margin-bottom"] {
+    display: flex;
+    flex-direction: column;
+  }
+  button {
+    width: 100%;
+    margin-left: 0;
+  }
+  .links-table th,
+  .links-table td {
+    padding: 8px 10px;
+  }
+}
